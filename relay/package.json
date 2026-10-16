@@ -1,6 +1,6 @@
 {
   "name": "long-range-players-relay",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "description": "Ephemeral WebSocket relay for opt-in long-range player position sharing",

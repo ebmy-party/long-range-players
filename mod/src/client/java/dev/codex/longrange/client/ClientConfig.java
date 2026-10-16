@@ -8,9 +8,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.LinkOption;
-import java.nio.file.StandardCopyOption;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Locale;
 
 final class ClientConfig {
@@ -19,14 +16,8 @@ final class ClientConfig {
 
     boolean enabled = false;
     static final String DEFAULT_RELAY_URL = "wss://lrp.ebmy.party/ws";
-    String relayUrl = DEFAULT_RELAY_URL;
-    String relayOperator = "yukugura";
-    String relayContact = "配布元のDiscordスレッド";
-    int relayRetentionDays = 7;
-    Map<String, String> consents = new HashMap<>();
-    Map<String, String> groupCodes = new HashMap<>();
-    String groupCode(String address) { return groupCodes.getOrDefault(codeKey(relayUrl, address), ""); }
-    static String codeKey(String url, String address) { return RoomIdentity.hash(PrivacyPolicy.normalizeUrl(url) + "\n" + serverKey(address)); }
+    String groupCode = "";
+    String groupCode(String address) { return groupCode; }
     static boolean validCode(String code) { return code != null && code.matches("(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,64}"); }
     String privacyDecision = "";
     boolean debug = false;
@@ -48,7 +39,7 @@ final class ClientConfig {
             ClientConfig config = parse(raw);
             // Migrate away from plaintext credentials and global room overrides.
             var old = com.google.gson.JsonParser.parseString(raw).getAsJsonObject();
-            if (old.has("token") || old.has("roomKey") || old.has("roomKeys")) config.save();
+            if (old.has("token") || old.has("roomKey") || old.has("roomKeys") || old.has("relayUrl") || old.has("groupCodes") || old.has("consents")) config.save();
             return config;
         } catch (IOException | RuntimeException ignored) {
             lastLoadError = "設定ファイルを読めません";
@@ -73,34 +64,20 @@ final class ClientConfig {
         RelayDecoder.boundedJson(contents);
         ClientConfig config = GSON.fromJson(contents, ClientConfig.class);
         if (config == null) throw new IllegalArgumentException("Config must contain a JSON object");
-        config.relayUrl = PrivacyPolicy.normalizeUrl(config.relayUrl);
         var fields = com.google.gson.JsonParser.parseString(contents).getAsJsonObject();
-        if (!DEFAULT_RELAY_URL.equals(config.relayUrl)) {
-            if (!fields.has("relayOperator")) config.relayOperator = "";
-            if (!fields.has("relayContact")) config.relayContact = "";
+        if (config.groupCode == null) config.groupCode = "";
+        // Preserve a single old code; ambiguous old server-specific codes require an explicit choice.
+        if (!fields.has("groupCode") && fields.has("groupCodes") && fields.get("groupCodes").isJsonObject()) {
+            var unique = new java.util.HashSet<String>();
+            for (var entry : fields.getAsJsonObject("groupCodes").entrySet()) {
+                if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isString())
+                    unique.add(entry.getValue().getAsString());
+            }
+            if (unique.size() == 1 && validCode(unique.iterator().next())) config.groupCode = unique.iterator().next();
         }
-        if (config.relayOperator == null) config.relayOperator = "";
-        if (config.relayContact == null) config.relayContact = "";
-        config.relayOperator = config.relayOperator.trim();
-        config.relayContact = config.relayContact.trim();
-        if (config.relayOperator.length() > 100 || config.relayContact.length() > 512
-                || config.relayOperator.chars().anyMatch(Character::isISOControl)
-                || config.relayContact.chars().anyMatch(Character::isISOControl)
-                || config.relayRetentionDays < 1 || config.relayRetentionDays > 30)
-            throw new IllegalArgumentException("Invalid relay privacy settings");
+        if (!config.groupCode.isEmpty() && !validCode(config.groupCode)) throw new IllegalArgumentException("Invalid group code");
         if (config.privacyDecision == null) config.privacyDecision = "";
         if (!config.privacyDecision.matches("(?:|(?:declined:)?[a-f0-9]{64})")) throw new IllegalArgumentException("Invalid privacy decision");
-        if (config.consents == null) config.consents = new HashMap<>();
-        if (config.consents.size() > 64) throw new IllegalArgumentException("Too many consent records");
-        for (var entry : config.consents.entrySet())
-            if (!entry.getKey().matches("[a-f0-9]{64}") || entry.getValue() == null
-                    || !entry.getValue().matches("(?:declined:)?[a-f0-9]{64}"))
-                throw new IllegalArgumentException("Invalid consent record");
-        if (config.groupCodes == null) config.groupCodes = new HashMap<>();
-        if (config.groupCodes.size() > 64) throw new IllegalArgumentException("Too many group codes");
-        for (var entry : config.groupCodes.entrySet())
-            if (!entry.getKey().matches("[a-f0-9]{64}") || !validCode(entry.getValue()))
-                throw new IllegalArgumentException("Invalid group code");
         config.minDistanceChunks = Math.max(0, Math.min(64, config.minDistanceChunks));
         return config;
     }
@@ -112,11 +89,8 @@ final class ClientConfig {
 
     boolean sameConnection(ClientConfig other) {
         return other != null && enabled == other.enabled
-                && relayUrl.equals(other.relayUrl)
-                && relayOperator.equals(other.relayOperator) && relayContact.equals(other.relayContact)
-                && relayRetentionDays == other.relayRetentionDays
                 && privacyDecision.equals(other.privacyDecision)
-                && consents.equals(other.consents) && groupCodes.equals(other.groupCodes);
+                && groupCode.equals(other.groupCode);
     }
 
     void save() {

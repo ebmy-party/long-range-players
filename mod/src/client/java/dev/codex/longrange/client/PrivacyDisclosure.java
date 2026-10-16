@@ -7,19 +7,13 @@ import net.minecraft.network.chat.Component;
 final class PrivacyDisclosure {
     static void add(ConfigCategory category, ConfigEntryBuilder entries) {
         String[] lines = {
-            "同意するまで本MODはRelayにも本人確認先にも接続しません。拒否してもMinecraftは遊べます。",
-            "送信先：" + PrivacyPolicy.current().url(),
-            "運営者：" + PrivacyPolicy.current().operator() + " / 問い合わせ：" + PrivacyPolicy.current().contact(),
-            "目的：同じグループの利用者同士の遠距離表示、接続管理、不正利用対策。",
-            "送信：MCID・UUID・接続先とワールドの識別値・ディメンション・ゲーム内座標・向き・姿勢・装備・グループコード。",
-            "位置等は約10回/秒。現実のGPS位置は取得しません。",
-            "透明化・スペクテイター中は位置・姿勢・装備を送りません。理由を含まない表示取り下げ通知で第二の体を消します。",
-            "共有：Relay管理者と、同じコード・Minecraft接続先・ワールドの利用者。コードを知る第三者も参加できるため、共有相手を選んでください。",
-            "記録：TCP接続元IP（プロキシ経由では通常プロキシのIP）・MCID・UUID・接続／切断時刻。本Relayの保存は最大" + PrivacyPolicy.current().retentionDays() + "日。座標はアクセスログへ保存しません。",
-            "他利用者が受信した表示・録画は、送信を止めても相手側から回収できません。",
-            "本人確認：Mojang公式HTTPSへMinecraftのログイントークンを送信します。Relayへトークンは渡しません。",
-            "コードは端末の設定ファイルへ平文保存します。Relayへの接続許可や暗号化の鍵ではありません。Minecraftサーバーへの現在の参加そのものを証明する機能ではありません。",
-            "停止：設定で無効化、または /lrp revoke。同意先・ワールド・アカウント・説明が変わると再確認します。"
+            "遠くのプレイヤーを表示するため、専用Relayへゲーム内情報を送信します。",
+            "送信先：lrp.ebmy.party ／ 運営者：yukugura ／ 問い合わせ：配布元のDiscordスレッド",
+            "送信する情報：プレイヤー名・UUID、サーバーとワールドの識別値、ディメンション、座標・向き・姿勢・装備・動作、グループコード。",
+            "同じコード・サーバー・ワールドの利用者と表示を共有します。Relay運営者も中継情報を扱います。透明化・スペクテイター中は位置や装備を送りません。",
+            "接続履歴（名前・UUID・接続元IP・時刻）はRelay側で保存します（標準7日）。座標はアクセスログに保存しません。",
+            "本人確認のためMojang公式サービスへログイントークンを送ります。Relayへは渡しません。更新確認のためGitHubにも接続しますが、プレイヤー名や座標は送りません。",
+            "同意はこのアカウントでの利用に適用されます。停止は設定の無効化または /lrp revoke、説明の再確認は /lrp privacy。"
         };
         for (String line : lines) category.addEntry(entries.startTextDescription(Component.literal(line)).build());
     }

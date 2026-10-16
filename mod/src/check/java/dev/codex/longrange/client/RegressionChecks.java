@@ -33,7 +33,7 @@ public final class RegressionChecks {
         ClientConfig defaults = ClientConfig.parse("{\"enabled\":true,\"token\":\"test-only\"}");
         check(!defaults.debug && defaults.minDistanceChunks == 2 && defaults.journeyMap, "missing distance defaults to two chunks");
         check(ClientConfig.parse("{\"minDistanceChunks\":3}").minDistanceChunks == 3, "existing explicit distance remains unchanged");
-        check(defaults.relayUrl.equals("wss://lrp.ebmy.party/ws") && defaults.consents.isEmpty(), "requested default WSS endpoint restored without granting consent");
+        check(PrivacyPolicy.of(defaults).url().equals("wss://lrp.ebmy.party/ws") && defaults.privacyDecision.isEmpty(), "requested default WSS endpoint restored without granting consent");
         check(!ClientConfig.parse("{}").enabled && !ClientConfig.parse("{\"enabled\":false}").enabled, "disabled by default; existing explicit opt-out preserved");
         ClientConfig oldAuto = ClientConfig.parse("{\"autoDistance\":true,\"minDistanceChunks\":5}");
         check(oldAuto.minDistanceChunks == 5 && oldAuto.sameValues(ClientConfig.parse("{\"minDistanceChunks\":5}")), "obsolete auto-distance setting ignored; manual value preserved");
@@ -58,7 +58,7 @@ public final class RegressionChecks {
             check(server.accepted.get() == 1, "eight connect calls create one pending TCP connection");
             server.gate.countDown(); until(() -> server.clients.size() == 1 && server.clients.getFirst().messages.get() == 1);
             Client first = server.clients.getFirst();
-            String welcome = "{\"type\":\"welcome\",\"protocol\":4,\"identityVerified\":true,\"peers\":[]}";
+            String welcome = "{\"type\":\"welcome\",\"protocol\":5,\"identityVerified\":true,\"peers\":[]}";
             challenge(first);
             first.frame(1, false, welcome.substring(0, 17)); Thread.sleep(80); pump();
             check(!statuses.contains(RelayTransport.Status.ONLINE), "incomplete text cannot mark ONLINE");
@@ -131,7 +131,7 @@ public final class RegressionChecks {
     }
 
     private static void challenge(Client client) throws Exception {
-        client.frame(1, true, "{\"type\":\"challenge\",\"retentionDays\":7,\"protocol\":4,\"nonce\":\"" + "a".repeat(64) + "\"}");
+        client.frame(1, true, "{\"type\":\"challenge\",\"retentionDays\":7,\"protocol\":5,\"nonce\":\"" + "a".repeat(64) + "\"}");
         until(() -> client.messages.get() == 2);
     }
 

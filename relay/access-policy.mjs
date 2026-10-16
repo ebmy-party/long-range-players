@@ -2,12 +2,12 @@ import { isIP } from 'node:net';
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 
-export const CONSENT_REVISION = 'lrp-privacy-2026-10-v2';
+export const CONSENT_REVISION = 'lrp-privacy-2026-10-v3';
 export const sha256 = text => createHash('sha256').update(text).digest('hex');
 export const serverId = address => sha256(address.trim().toLowerCase());
 export const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 export function sessionHash(hello, nonce, publicUrl) {
-  const text = ['long-range-players/session/v4', hello.clientNonce, nonce, hello.uuid, hello.serverId, hello.world, publicUrl, hello.groupHash ?? ''].join('\n');
+  const text = ['long-range-players/session/v5', hello.clientNonce, nonce, hello.uuid, hello.serverId, hello.world, publicUrl, hello.groupHash ?? ''].join('\n');
   const hex = createHash('sha1').update(text).digest('hex');
   let n = BigInt('0x' + hex);
   if (n >= (1n << 159n)) n -= 1n << 160n;

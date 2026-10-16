@@ -46,7 +46,7 @@ test('production server starts from environment alone without a policy file or i
     while (!output.includes('relay_listening') && child.exitCode === null && Date.now() < end)
       await new Promise(r => setTimeout(r, 20));
     assert.ok(output.includes('relay_listening'), errors);
-    assert.ok(output.includes('"protocol":4'));
+    assert.ok(output.includes('"protocol":5'));
   } finally {
     child.kill();
     if (child.exitCode === null) await once(child, 'exit');

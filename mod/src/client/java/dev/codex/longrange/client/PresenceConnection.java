@@ -32,7 +32,7 @@ final class PresenceConnection {
         transport = new RelayTransport(action -> Minecraft.getInstance().execute(action), this::receive, this::setStatus, MojangIdentity::prove);
     }
     private void clearPeers() { players.clear(); roster.clear(); }
-    void joined() { ConsentScreen.reset(); announcementPending = true; target = ""; transport.disconnect(); clearPeers(); }
+    void joined() { announcementPending = true; target = ""; transport.disconnect(); clearPeers(); }
     void worldChanged() {
         transport.disconnect(); clearPeers(); target = "";
         setStatus(RelayTransport.Status.OFFLINE, "ワールド移動に合わせて同期先を切り替えています");
@@ -45,9 +45,7 @@ final class PresenceConnection {
         pollConfig();
         if (!configError.isBlank()) { offline("設定に問題があります。送信を停止しています"); announce(client); return; }
         if (ReplayRecording.isPlayback() || client.player == null || client.getCurrentServer() == null) { transport.disconnect(); clearPeers(); target = ""; return; }
-        String consentContext = ConsentScreen.context(client);
-        ConsentScreen.maybePrompt(client, config, consentContext);
-        if (!PrivacyPolicy.current().ready() || !ConsentRules.maySend(config, ConsentScreen.generalKey(client), consentContext, PrivacyPolicy.current().hash())) {
+        if (!PrivacyPolicy.current().ready() || !ConsentRules.maySend(config, ConsentScreen.generalKey(client), null, PrivacyPolicy.current().hash())) {
             offline(config.enabled ? "外部送信への同意が必要です。/lrp privacy で確認できます" : "無効です。Mod Menuの設定または /lrp privacy で説明を確認できます"); announce(client); return;
         }
         if (!config.enabled) { offline("設定で無効になっています"); announce(client); return; }
@@ -71,8 +69,7 @@ final class PresenceConnection {
             join.addProperty("consent", PrivacyPolicy.REVISION); join.addProperty("policyHash", PrivacyPolicy.current().hash());
             join.addProperty("dimension", client.player.level().dimension().identifier().toString());
             join.addProperty("groupCode", groupCode);
-            join.addProperty("relayUrl", config.relayUrl);
-            join.addProperty("retentionDays", config.relayRetentionDays);
+            join.addProperty("relayUrl", ClientConfig.DEFAULT_RELAY_URL);
             transport.connect(PrivacyPolicy.current().url(), join);
         }
         var player = client.player;
@@ -139,7 +136,7 @@ final class PresenceConnection {
         if (!announcementPending || client.player == null || status == RelayTransport.Status.CONNECTING) return;
         announcementPending = false;
         String result = status == RelayTransport.Status.ONLINE ? "同期サーバーに接続しました。" : "同期サーバーに接続していません: " + detail;
-        client.player.sendSystemMessage(Component.literal("[Long Range Players] " + result + (configError.isBlank() ? "" : " / " + configError)));
+        client.player.sendSystemMessage(Component.literal("[LR-Players] " + result + (configError.isBlank() ? "" : " / " + configError)));
     }
     Map<UUID, RemotePlayer> players() { return Map.copyOf(players); }
     boolean isOnline() { return status == RelayTransport.Status.ONLINE && transport.isStarted(); }
@@ -149,7 +146,7 @@ final class PresenceConnection {
         configError = "設定ファイルを保存できません。ファイル権限を確認してください";
         LOGGER.warn("Config save failed");
         var client = Minecraft.getInstance();
-        if (client.player != null) client.player.sendSystemMessage(Component.literal("[Long Range Players] " + configError));
+        if (client.player != null) client.player.sendSystemMessage(Component.literal("[LR-Players] " + configError));
     }
     String statusText() { return "Long Range Players: " + status + " (" + detail + ")" + (configError.isBlank() ? "" : " / " + configError); }
     int statusColor() {

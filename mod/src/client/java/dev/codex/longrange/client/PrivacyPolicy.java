@@ -5,13 +5,11 @@ import java.util.Locale;
 
 /** Local settings are displayed before external requests; every change invalidates consent. */
 record PrivacyPolicy(String url, String operator, String contact, int retentionDays, String hash) {
-    static final String REVISION = "lrp-privacy-2026-10-v2";
+    static final String REVISION = "lrp-privacy-2026-10-v3";
     static PrivacyPolicy current() { return of(LongRangePlayersClient.config()); }
     static PrivacyPolicy of(ClientConfig config) {
-        String url = normalizeUrl(config.relayUrl);
-        return new PrivacyPolicy(url, config.relayOperator, config.relayContact, config.relayRetentionDays,
-                RoomIdentity.hash(String.join("\n", REVISION, url, config.relayOperator, config.relayContact,
-                        Integer.toString(config.relayRetentionDays))));
+        return new PrivacyPolicy(ClientConfig.DEFAULT_RELAY_URL, "yukugura", "配布元のDiscordスレッド", 7,
+                RoomIdentity.hash(REVISION + "\n" + ClientConfig.DEFAULT_RELAY_URL));
     }
     boolean ready() { return !url.isBlank() && !operator.isBlank() && !contact.isBlank(); }
     static String normalizeUrl(String value) {

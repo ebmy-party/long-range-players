@@ -20,6 +20,7 @@ public final class LongRangePlayersClient implements ClientModInitializer {
             ReplayRecording.updatePlayback();
             ConsentScreen.tick(client);
             connection.tick(client);
+            UpdateNotice.tick(client);
             RemoteAvatarRenderer.tick(client);
             ReplayRecording.tick(client);
         });

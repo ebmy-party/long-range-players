@@ -23,7 +23,7 @@ import javax.net.ssl.SSLException;
 
 /** All state changes are dispatched to the game thread and bound to one connection attempt. */
 final class RelayTransport {
-    static final int PROTOCOL = 4;
+    static final int PROTOCOL = 5;
     @FunctionalInterface interface IdentityProof { CompletionStage<Void> prove(JsonObject hello, String nonce, String relayUrl); }
     enum Status { OFFLINE, CONNECTING, ONLINE, ERROR }
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
@@ -119,7 +119,7 @@ final class RelayTransport {
             case 4006 -> "同じアカウントの接続が既にあります。既存接続を終了してください [4006]";
             case 1013 -> "Relayまたは部屋の人数上限です [1013]";
             case 4001 -> "同じUUIDの別接続に置き換えられました [4001]";
-            case 4002 -> "RelayとMODの通信バージョンが一致しません [4002]";
+            case 4002 -> "RelayとMODの通信バージョンが一致しません。MODを最新版へ更新してください [4002]";
             case 1001 -> "Relayが停止または再起動しました [1001]";
             case 1007 -> "Relayがメッセージ形式を拒否しました [1007]";
             case 1009 -> "メッセージサイズ上限を超えました [1009]";
@@ -175,9 +175,6 @@ final class RelayTransport {
             String type = message == null ? "" : message.get("type").getAsString();
             if (!welcomed) {
                 if ("challenge".equals(type) && !challenged && message.get("protocol").getAsInt() == PROTOCOL) {
-                    if (!join.has("retentionDays") || message.get("retentionDays").getAsInt() != join.get("retentionDays").getAsInt()) {
-                        fail("Relayの保存日数が同意内容と一致しません"); return;
-                    }
                     challenged = true;
                     String nonce = message.get("nonce").getAsString();
                     identity.prove(join.deepCopy(), nonce, address).whenComplete((ignored, error) -> deliver(this, () -> {
@@ -189,7 +186,7 @@ final class RelayTransport {
                 }
                 if (!proofSent || !"welcome".equals(type) || message.get("protocol").getAsInt() != PROTOCOL
                         || !message.get("identityVerified").getAsBoolean()) {
-                    fail("Relayの認証応答が不正です。MODとRelayを通信プロトコル4対応版に揃えてください"); return;
+                    fail("Relayの認証応答が不正です。MODとRelayを通信プロトコル5対応版に揃えてください"); return;
                 }
                 welcomed = true; statuses.accept(Status.ONLINE, "本人確認済み・グループに接続しました");
             } else if (message == null || "welcome".equals(type) || "challenge".equals(type)) {

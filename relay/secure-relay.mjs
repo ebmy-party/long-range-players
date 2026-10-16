@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { permitted, sessionHash, uuidPattern, CONSENT_REVISION, sha256 } from './access-policy.mjs';
 import { normalizePose } from './pose.mjs';
 
-export const PROTOCOL = 4;
+export const PROTOCOL = 5;
 const hex = /^[a-f0-9]{64}$/;
 const dimension = /^[a-z0-9_.-]+:[a-z0-9_][a-z0-9_./-]*$/;
 /** Injectable verifier is used by in-process tests; production always supplies the official verifier. */
@@ -99,7 +99,6 @@ export function createRelay({ policy: initialPolicy, verifyIdentity, log, secure
         if (policy.mode === 'group') {
           if (policy.deniedUUIDs.has(msg.uuid)) { reject(4007, 'account denied'); return; }
           if (typeof msg.groupCode !== 'string' || !/^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,64}$/.test(msg.groupCode)) { reject(4004, 'invalid group code'); return; }
-          if (msg.retentionDays !== policy.retentionDays) { reject(4008, 'retention consent mismatch'); return; }
           try {
             if (typeof msg.relayUrl !== 'string' || msg.relayUrl.length > 512) throw new Error();
             const url = new URL(msg.relayUrl);

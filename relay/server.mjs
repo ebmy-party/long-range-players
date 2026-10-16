@@ -23,6 +23,6 @@ const maintenance = setInterval(() => {
     reloadFailed = true;
   }
 }, 1000);
-relay.http.listen(port, () => console.log(JSON.stringify({ event: 'relay_listening', port, protocol: 4, version: '0.8.0' })));
+relay.http.listen(port, () => console.log(JSON.stringify({ event: 'relay_listening', port, protocol: 5, version: '0.9.0' })));
 async function shutdown() { clearInterval(maintenance); await relay.close(); }
 process.once('SIGTERM', shutdown); process.once('SIGINT', shutdown);

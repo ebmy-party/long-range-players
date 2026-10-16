@@ -54,7 +54,7 @@ function policyInput() {
     servers: [1, 2].map(id => ({ id: group(id), addresses: [`server${id}.example`],
       members: [1, 2, 3, 4].map(id => ({ uuid: uuid(id), expiresAt: Date.now() + 86400000 })) })) };
 }
-const hello = (id, policy, overrides = {}) => ({ type: 'hello', protocol: 4, uuid: uuid(id), name: `Audit${id}`,
+const hello = (id, policy, overrides = {}) => ({ type: 'hello', protocol: 5, uuid: uuid(id), name: `Audit${id}`,
   serverId: serverId('server1.example'), world: 'a'.repeat(64), dimension: 'minecraft:overworld',
   clientNonce: 'c'.repeat(64), consent: CONSENT_REVISION, policyHash: policy.policyHash, ...(policy.mode === 'group' ? {groupCode: 'Shared1234567890', relayUrl: 'wss://relay.example/ws', retentionDays:7} : {}), ...overrides });
 const pose = { type: 'pose', dimension: 'minecraft:overworld', x: 12.345, y: 64, z: -5,
@@ -237,13 +237,17 @@ test('group, server and world all isolate roster and poses; denial revokes authe
   await waitFor(()=>b.closedCode!==null);
 });
 
-test('group mode rejects retention mismatch and claimed UUID mismatch', async t => {
+test('group mode rejects claimed UUID mismatch and binds group to proof', async t => {
   const f = await fixture(t, async () => ({uuid:uuid(2),name:'Audit2'}), environmentPolicy({}).parsed);
-  const wrongRetention = await f.connect(hello(1,f.policy,{retentionDays:8}));
-  await waitFor(()=>wrongRetention.closedCode!==null); assert.equal(wrongRetention.closedCode,4008);
-  assert.equal(f.verifications.length,0);
   const wrongIdentity = await f.connect(hello(1,f.policy));
   await waitFor(()=>wrongIdentity.closedCode!==null); assert.equal(wrongIdentity.closedCode,4005);
   const h = {...hello(1,f.policy), groupHash:'a'.repeat(64)};
   assert.notEqual(sessionHash(h,'d'.repeat(64),h.relayUrl),sessionHash({...h,groupHash:'b'.repeat(64)},'d'.repeat(64),h.relayUrl));
+});
+test('retention is server-managed and clients need no retention setting', async t => {
+  const policy = environmentPolicy({RELAY_RETENTION_DAYS:'12'}).parsed;
+  const f = await fixture(t, null, policy);
+  const a = await f.online(1,{retentionDays:undefined});
+  assert.equal(a.messages.find(m=>m.type==='challenge').retentionDays,12);
+  await f.online(2,{retentionDays:1});
 });
