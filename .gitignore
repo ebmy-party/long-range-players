@@ -22,3 +22,25 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Project data and credentials
+.env
+.env.*
+!.env.example
+node_modules/
+relay/data/
+mod/libs/
+mod/.gradle/
+mod/build/
+
+.signing/
+relay-policy/
+relay/access-policy.json
+*.p12
+*.key
+*.dpapi
+*.log
+__pycache__/
+backups/
+diagnostics/
+relay-setup-backup-*/

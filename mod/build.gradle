@@ -1,0 +1,69 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.16.2'
+    id 'maven-publish'
+}
+
+group = 'dev.codex.longrange'
+version = '0.8.0+mc.26.2'
+base { archivesName = 'long-range-players' }
+
+repositories {
+    maven { url = 'https://maven.blamejared.com' }
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
+    maven { url = 'https://maven.shedaniel.me/' }
+}
+
+dependencies {
+    minecraft 'com.mojang:minecraft:26.2'
+    implementation 'net.fabricmc:fabric-loader:0.19.3'
+    implementation 'net.fabricmc.fabric-api:fabric-api:0.155.2+26.2'
+    compileOnly 'com.terraformersmc:modmenu:20.0.3'
+    compileOnly 'me.shedaniel.cloth:cloth-config:26.2.155'
+    compileOnly('info.journeymap:journeymap-api-fabric:26.2-2.0.0') { transitive = false }
+}
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        'long_range_players' {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach { options.release = 25 }
+
+sourceSets {
+    regression {
+        java.srcDir 'src/check/java'
+        compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
+        runtimeClasspath = output + compileClasspath
+    }
+}
+tasks.register('regressionChecks', JavaExec) {
+    dependsOn regressionClasses
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.codex.longrange.client.RegressionChecks'
+    jvmArgs '-ea'
+}
+tasks.named('check') { dependsOn 'regressionChecks' }
+
+tasks.register('replayPacketChecks', JavaExec) {
+    dependsOn regressionClasses
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.codex.longrange.client.ReplayPacketChecks'
+    jvmArgs '-ea'
+}
+tasks.named('check') { dependsOn 'replayPacketChecks' }

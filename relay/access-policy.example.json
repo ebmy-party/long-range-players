@@ -1,0 +1,9 @@
+{
+  "revision": "lrp-privacy-2026-10-v1",
+  "publicUrl": "wss://relay.example/ws",
+  "operator": "Your operator name",
+  "contact": "Your support contact",
+  "retentionDays": 7,
+  "trustedProxyAddresses": [],
+  "servers": []
+}

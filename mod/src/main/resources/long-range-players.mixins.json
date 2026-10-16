@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.codex.longrange.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["GameRendererMixin", "LevelExtractorMixin", "EmotecraftLookupMixin", "ReplayPacketBoundaryMixin", "ReplayPlayerInfoMixin", "PlayerInfoAccessor", "WorldIdentityMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -1,0 +1,51 @@
+services:
+  storage-init:
+    image: long-range-players-relay:0.8.0
+    pull_policy: build
+    build: ./relay
+    user: "0:0"
+    entrypoint: ["node", "/app/storage-init.mjs"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - relay-data:/app/data
+    restart: "no"
+  relay:
+    image: long-range-players-relay:0.8.0
+    pull_policy: build
+    build: ./relay
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      LOG_DIR: /app/data
+      RELAY_RETENTION_DAYS: ${RELAY_RETENTION_DAYS:-7}
+      RELAY_DENIED_UUIDS: ${RELAY_DENIED_UUIDS:-}
+    volumes:
+      - relay-data:/app/data
+    ports:
+      - "${RELAY_BIND_IP:-127.0.0.1}:${RELAY_PORT:-8080}:8080"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 100
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz',{signal:AbortSignal.timeout(2000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  relay-data:

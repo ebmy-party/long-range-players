@@ -1,0 +1,18 @@
+{
+  "name": "long-range-players-relay",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "description": "Ephemeral WebSocket relay for opt-in long-range player position sharing",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "stats": "node stats.mjs"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  }
+}
