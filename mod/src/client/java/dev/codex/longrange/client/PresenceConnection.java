@@ -45,10 +45,10 @@ final class PresenceConnection {
         pollConfig();
         if (!configError.isBlank()) { offline("設定に問題があります。送信を停止しています"); announce(client); return; }
         if (ReplayRecording.isPlayback() || client.player == null || client.getCurrentServer() == null) { transport.disconnect(); clearPeers(); target = ""; return; }
+        if (!config.enabled) { offline("MODは無効です。Mod Menuの設定で有効にできます"); announce(client); return; }
         if (!PrivacyPolicy.current().ready() || !ConsentRules.maySend(config, ConsentScreen.generalKey(client), null, PrivacyPolicy.current().hash())) {
-            offline(config.enabled ? "外部送信への同意が必要です。/lrp privacy で確認できます" : "無効です。Mod Menuの設定または /lrp privacy で説明を確認できます"); announce(client); return;
+            offline("外部送信への同意が必要です。/lrp privacy で確認できます"); announce(client); return;
         }
-        if (!config.enabled) { offline("設定で無効になっています"); announce(client); return; }
         String address = client.getCurrentServer().ip;
         if (address == null || address.isBlank()) { offline("Minecraftサーバーアドレスを取得できません"); announce(client); return; }
         String groupCode = config.groupCode(address);

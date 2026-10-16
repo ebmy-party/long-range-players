@@ -11,6 +11,5 @@ final class ConsentRules {
     }
     static void record(ClientConfig config, String key, String context, String policy, boolean accept) {
         config.privacyDecision = accept ? key : "declined:" + key;
-        config.enabled = accept;
     }
 }

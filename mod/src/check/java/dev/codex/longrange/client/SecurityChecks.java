@@ -25,7 +25,7 @@ final class SecurityChecks {
         ClientConfig deployment = ClientConfig.parse("{\"relayUrl\":\"wss://other.example/ws\",\"relayRetentionDays\":99}");
         check(PrivacyPolicy.of(deployment).url().equals(ClientConfig.DEFAULT_RELAY_URL), "old endpoint settings cannot redirect the client");
         check(PrivacyPolicy.of(deployment).hash().equals(PrivacyPolicy.of(new ClientConfig()).hash()), "server retention is no longer client-controlled");
-        check(PrivacyPolicy.of(new ClientConfig()).ready() && !new ClientConfig().enabled, "default destination requires consent");
+        check(PrivacyPolicy.of(new ClientConfig()).ready() && new ClientConfig().enabled, "default destination requires consent");
         String migrated = "{\"groupCodes\":{\"" + "a".repeat(64) + "\":\"Shared1234567890\"}}";
         check(ClientConfig.parse(migrated).groupCode.equals("Shared1234567890"), "single legacy code migrates to startup code");
         check(ReleaseVersion.newer("v0.10.0", "0.9.0+mc.26.2"), "update versions compare numbers rather than text");
@@ -97,9 +97,9 @@ final class SecurityChecks {
         String context = ConsentBinding.key("one.example", "world-a", account);
         String global = ConsentRules.generalKey(RoomIdentity.hash("test-policy"), account);
         ClientConfig flow = new ClientConfig();
-        check(!ConsentRules.decided(flow.privacyDecision, global) && !flow.enabled, "first launch requires a decision and stays disabled");
+        check(!ConsentRules.decided(flow.privacyDecision, global) && flow.enabled, "new install defaults enabled but still requires consent");
         ConsentRules.record(flow, global, null, RoomIdentity.hash("test-policy"), false);
-        check(ConsentRules.decided(flow.privacyDecision, global) && !flow.enabled, "launch refusal persists and does not prompt repeatedly");
+        check(ConsentRules.decided(flow.privacyDecision, global) && flow.enabled, "refusal persists independently of enabled setting");
         flow.enabled = true;
         check(!ConsentRules.maySend(flow, global, context, RoomIdentity.hash("test-policy")), "config enabled alone cannot bypass refusal");
         ConsentRules.record(flow, global, null, RoomIdentity.hash("test-policy"), true);
@@ -111,9 +111,16 @@ final class SecurityChecks {
         flow.groupCode = "Another123";
         check(ConsentRules.maySend(flow, global, "changed-code", RoomIdentity.hash("test-policy")), "saving group code does not require another consent");
         ConsentRules.record(flow, global, context, RoomIdentity.hash("test-policy"), false);
-        check(!flow.enabled, "refusal stops transmission and clears old per-world approvals");
+        check(flow.enabled && !ConsentRules.maySend(flow, global, context, RoomIdentity.hash("test-policy")), "refusal blocks transmission without changing enabled setting");
         ConsentRules.record(flow, global, null, RoomIdentity.hash("test-policy"), true);
         check(ConsentRules.maySend(flow, global, context, RoomIdentity.hash("test-policy")), "explicit reacceptance resumes without second world screen");
+        flow.enabled = false;
+        String savedDecision = flow.privacyDecision;
+        check(!ConsentRules.maySend(flow, global, context, RoomIdentity.hash("test-policy")), "manual disable stops transmission after consent");
+        ConsentRules.record(flow, global, null, RoomIdentity.hash("test-policy"), true);
+        check(!flow.enabled && savedDecision.equals(flow.privacyDecision), "accepting terms cannot turn a disabled MOD on");
+        flow.enabled = true;
+        check(ConsentRules.maySend(flow, global, context, RoomIdentity.hash("test-policy")), "manual reenable resumes with saved consent");
         Path file = Files.createTempFile("lrp-config-bound-", ".json");
         try {
             PrivateFiles.write(file, "{}");

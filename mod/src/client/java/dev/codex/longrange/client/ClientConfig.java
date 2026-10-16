@@ -14,7 +14,7 @@ final class ClientConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static Path path() { return FabricLoader.getInstance().getConfigDir().resolve("long-range-players.json"); }
 
-    boolean enabled = false;
+    boolean enabled = true;
     static final String DEFAULT_RELAY_URL = "wss://lrp.ebmy.party/ws";
     String groupCode = "";
     String groupCode(String address) { return groupCode; }

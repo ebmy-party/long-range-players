@@ -8,8 +8,8 @@ record PrivacyPolicy(String url, String operator, String contact, int retentionD
     static final String REVISION = "lrp-privacy-2026-10-v3";
     static PrivacyPolicy current() { return of(LongRangePlayersClient.config()); }
     static PrivacyPolicy of(ClientConfig config) {
-        return new PrivacyPolicy(ClientConfig.DEFAULT_RELAY_URL, "yukugura", "配布元のDiscordスレッド", 7,
-                RoomIdentity.hash(REVISION + "\n" + ClientConfig.DEFAULT_RELAY_URL));
+        return new PrivacyPolicy(ClientConfig.DEFAULT_RELAY_URL, "honwasa", "iptuuti@gmail.com", 7,
+                RoomIdentity.hash("onboarding-v4\n" + REVISION + "\n" + ClientConfig.DEFAULT_RELAY_URL + "\nhonwasa\n" + "iptuuti@gmail.com"));
     }
     boolean ready() { return !url.isBlank() && !operator.isBlank() && !contact.isBlank(); }
     static String normalizeUrl(String value) {

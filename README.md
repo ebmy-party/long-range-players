@@ -58,10 +58,6 @@ Minecraftクライアント
 
 新しい版を案内する際は、このリポジトリのReleasesで`v0.10.0`のようなタグを付け、対応する`long-range-players-0.10.0+mc.26.2.jar`を添付して正式版として公開します。まだReleasesがない場合や同じ版の場合は通知しません。0.8.0以前にはこの通知機能がありません。
 
-## Relayの構築
-
-[RELAY-UPDATE.md](RELAY-UPDATE.md)を参照してください。`.env`の初期設定後は`docker compose up -d`で起動できます。公開URLやNPMの設定は別途管理します。
-
 ## ソースと開発
 
 - `mod/src/client/java/dev/codex/longrange/client`：表示・通信・設定・同意・更新通知。

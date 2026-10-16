@@ -25,11 +25,11 @@ final class LongRangePlayersCommands {
     private static int revoke(FabricClientCommandSource source) {
         var client = net.minecraft.client.Minecraft.getInstance();
         var config = LongRangePlayersClient.config().copy();
-        config.enabled = false;
         config.privacyDecision = "declined:" + ConsentScreen.generalKey(client);
         LongRangePlayersClient.applyConfig(config);
         try { config.save(); } catch (RuntimeException error) { LongRangePlayersClient.connection().reportConfigError(); }
-        source.sendFeedback(Component.literal("[LR-Players] 同意を撤回し、送信を停止しました。再開は /lrp privacy。"));
+        source.sendFeedback(Component.literal("[LR-Players] 同意を撤回しました。ゲームを終了します。"));
+        client.stop();
         return 1;
     }
     private static int showWorld(FabricClientCommandSource source) {

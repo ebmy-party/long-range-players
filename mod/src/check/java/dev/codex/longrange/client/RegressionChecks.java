@@ -34,7 +34,7 @@ public final class RegressionChecks {
         check(!defaults.debug && defaults.minDistanceChunks == 2 && defaults.journeyMap, "missing distance defaults to two chunks");
         check(ClientConfig.parse("{\"minDistanceChunks\":3}").minDistanceChunks == 3, "existing explicit distance remains unchanged");
         check(PrivacyPolicy.of(defaults).url().equals("wss://lrp.ebmy.party/ws") && defaults.privacyDecision.isEmpty(), "requested default WSS endpoint restored without granting consent");
-        check(!ClientConfig.parse("{}").enabled && !ClientConfig.parse("{\"enabled\":false}").enabled, "disabled by default; existing explicit opt-out preserved");
+        check(ClientConfig.parse("{}").enabled && !ClientConfig.parse("{\"enabled\":false}").enabled, "enabled by default; existing explicit disable preserved");
         ClientConfig oldAuto = ClientConfig.parse("{\"autoDistance\":true,\"minDistanceChunks\":5}");
         check(oldAuto.minDistanceChunks == 5 && oldAuto.sameValues(ClientConfig.parse("{\"minDistanceChunks\":5}")), "obsolete auto-distance setting ignored; manual value preserved");
         ClientConfig copy = defaults.copy(); copy.debug = true;
