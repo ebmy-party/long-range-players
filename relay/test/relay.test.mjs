@@ -290,3 +290,17 @@ test('explicit legacy membership expiry still disconnects an authenticated sessi
   await waitFor(() => a.closedCode !== null);
   assert.equal(f.verifications.length, 1);
 });
+
+test('audit restart in the same millisecond does not prune its current writable file', () => {
+  const dir = temporary();
+  try {
+    const now = () => Date.parse('2026-10-17T00:00:00.000Z');
+    const options = {maxBytes:180, maxFiles:3, now};
+    const first = createAuditLog(dir, options);
+    for (let i=0; i<20; i++) first({event:'first',i,data:'x'.repeat(130)});
+    const restarted = createAuditLog(dir, options);
+    for (let i=0; i<20; i++) restarted({event:'restart',i,data:'x'.repeat(130)});
+    assert.equal(readdirSync(dir).filter(n => n.endsWith('.jsonl')).length,3);
+    assert.ok(logs(dir).some(r => r.event === 'restart' && r.i === 19));
+  } finally { cleanup(dir); }
+});

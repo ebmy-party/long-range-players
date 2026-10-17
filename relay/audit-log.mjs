@@ -16,7 +16,10 @@ export function createAuditLog(directory, { maxBytes = 10 * 1024 * 1024, maxFile
     const cutoff = now() - retentionDays * 86400000;
     const remove = new Set(files.filter(name => created(name) <= cutoff));
     const keep = files.filter(name => !remove.has(name));
-    for (const name of keep.slice(0, Math.max(0, keep.length - maxFiles))) remove.add(name);
+    // A restarted writer can sort before older files created in the same millisecond.
+    // Never prune the current writable file to enforce the file-count limit.
+    const candidates = keep.filter(name => join(root, name) !== path);
+    for (const name of candidates.slice(0, Math.max(0, keep.length - maxFiles))) remove.add(name);
     for (const name of remove) {
       const target = join(root, name); unlinkSync(target);
       if (target === path) { path = undefined; bytes = 0; }
