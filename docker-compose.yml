@@ -1,8 +1,6 @@
 services:
   storage-init:
-    image: long-range-players-relay:0.9.0
-    pull_policy: build
-    build: ./relay
+    image: ghcr.io/ebmy-party/long-range-players-relay:latest
     user: "0:0"
     entrypoint: ["node", "/app/storage-init.mjs"]
     network_mode: none
@@ -14,9 +12,7 @@ services:
       - relay-data:/app/data
     restart: "no"
   relay:
-    image: long-range-players-relay:0.9.0
-    pull_policy: build
-    build: ./relay
+    image: ghcr.io/ebmy-party/long-range-players-relay:latest
     depends_on:
       storage-init:
         condition: service_completed_successfully

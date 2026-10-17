@@ -61,9 +61,9 @@ const pose = { type: 'pose', dimension: 'minecraft:overworld', x: 12.345, y: 64,
   yaw: -10, pitch: 100, bodyYaw: 25, headYaw: 30, stance: 'CROUCHING', sneaking: true,
   usingItem: true, useHand: 'OFF_HAND', mainArm: 'LEFT', swing: 7, swingHand: 'MAIN_HAND',
   equipment: { MAINHAND: 'minecraft:diamond_sword' }, modelParts: 127 };
-async function fixture(t, verifier, customPolicy) {
+async function fixture(t, verifier, customPolicy, now = Date.now) {
   const policy = customPolicy ?? parsePolicy(policyInput()), history = [], sockets = [], verifications = [];
-  const relay = createRelay({ policy, secureRequest: () => true, log: record => history.push(record),
+  const relay = createRelay({ policy, now, secureRequest: () => true, log: record => history.push(record),
     verifyIdentity: async (name, hash, signal) => {
       verifications.push({name, hash});
       return verifier ? verifier(name, hash, signal) : { uuid: uuid(Number(name.replace('Audit', ''))), name };
@@ -250,4 +250,43 @@ test('retention is server-managed and clients need no retention setting', async 
   const a = await f.online(1,{retentionDays:undefined});
   assert.equal(a.messages.find(m=>m.type==='challenge').retentionDays,12);
   await f.online(2,{retentionDays:1});
+});
+
+test('live group session survives 30 minutes and one day; reconnect requires new proof', async t => {
+  let time = Date.now();
+  const f = await fixture(t, null, environmentPolicy({}).parsed, () => time);
+  const a = await f.online(1), b = await f.online(2);
+  for (const advance of [31 * 60 * 1000, 24 * 60 * 60 * 1000]) {
+    time += advance;
+    await delay(1200); // Allow the real authorization maintenance timer to run.
+    assert.equal(a.closedCode, null);
+    assert.equal(b.closedCode, null);
+    const count = b.messages.filter(m => m.type === 'pose').length;
+    a.send(JSON.stringify(pose));
+    await waitFor(() => b.messages.filter(m => m.type === 'pose').length > count);
+    assert.equal(f.verifications.length, 2);
+  }
+  a.close();
+  await waitFor(() => a.closedCode !== null && f.relay.stats().peers === 1);
+  const pending = await f.connect(hello(1, f.policy), false);
+  await waitFor(() => pending.messages.some(m => m.type === 'challenge'));
+  assert.ok(!pending.messages.some(m => m.type === 'welcome'));
+  assert.equal(f.verifications.length, 2);
+  pending.send(JSON.stringify({type:'prove', nonce:pending.messages.find(m => m.type === 'challenge').nonce}));
+  await waitFor(() => pending.messages.some(m => m.type === 'welcome'));
+  assert.equal(f.verifications.length, 3);
+  f.relay.updatePolicy(environmentPolicy({RELAY_DENIED_UUIDS:uuid(1)}).parsed);
+  await waitFor(() => pending.closedCode !== null);
+  assert.equal(b.closedCode, null);
+});
+
+test('explicit legacy membership expiry still disconnects an authenticated session', async t => {
+  let time = Date.now();
+  const input = policyInput();
+  input.servers[0].members[0].expiresAt = time + 60_000;
+  const f = await fixture(t, null, parsePolicy(input), () => time);
+  const a = await f.online(1);
+  time += 60_001;
+  await waitFor(() => a.closedCode !== null);
+  assert.equal(f.verifications.length, 1);
 });

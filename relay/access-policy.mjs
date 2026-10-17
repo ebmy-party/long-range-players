@@ -54,7 +54,7 @@ export function permitted(policy, hello, now = Date.now()) {
   if (policy.blocked) return null;
   if (policy.mode === 'group') {
     if (policy.deniedUUIDs.has(hello.uuid) || typeof hello.groupHash !== 'string' || !/^[a-f0-9]{64}$/.test(hello.groupHash)) return null;
-    return { id: sha256(hello.serverId + ':' + hello.groupHash), members: new Map([[hello.uuid, now + 30 * 60 * 1000]]) };
+    return { id: sha256(hello.serverId + ':' + hello.groupHash), members: new Map([[hello.uuid, Infinity]]) };
   }
   const server = policy.servers.get(hello.serverId);
   return server && (server.members.get(hello.uuid) ?? 0) > now ? server : null;

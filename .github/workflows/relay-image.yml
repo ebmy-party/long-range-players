@@ -1,0 +1,67 @@
+name: Publish Relay image
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: relay-image-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: relay/package-lock.json
+      - name: Test Relay
+        working-directory: relay
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+      - name: Read Relay version
+        id: version
+        run: |
+          node -e 'const v=require("./relay/package.json").version; if(!/^\d+\.\d+\.\d+$/.test(v)) process.exit(1); console.log("value="+v)' >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build smoke-test image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ./relay
+          load: true
+          tags: ghcr.io/ebmy-party/long-range-players-relay:latest
+      - name: Test Compose startup and persistent storage
+        run: |
+          docker compose -p lrp-ci config --quiet
+          docker compose -p lrp-ci up -d --wait --wait-timeout 90
+          curl --fail http://localhost:8080/healthz
+          docker compose -p lrp-ci restart relay
+          docker compose -p lrp-ci up -d --wait --wait-timeout 90
+          curl --fail http://localhost:8080/healthz
+      - name: Clean up CI containers
+        if: always()
+        run: docker compose -p lrp-ci down --volumes
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish amd64 and arm64 images
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ./relay
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/ebmy-party/long-range-players-relay:${{ steps.version.outputs.value }}
+            ghcr.io/ebmy-party/long-range-players-relay:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/ebmy-party/long-range-players
+            org.opencontainers.image.version=${{ steps.version.outputs.value }}
+            org.opencontainers.image.revision=${{ github.sha }}

@@ -135,8 +135,7 @@ export function createRelay({ policy: initialPolicy, verifyIdentity, log, secure
         if (room.has(identity.uuid)) { reject(4006, 'already connected'); return; }
         if (room.size >= 64) { reject(1013, 'peer limit'); return; }
         peer = { ws, uuid: identity.uuid, name: identity.name, dimension: hello.dimension, room: roomId,
-          serverId: hello.serverId, policyHash: hello.policyHash, groupHash: hello.groupHash, connectionId, joinedAt: now(), lastPose: 0,
-          expiresAt: Math.min(grant.members.get(identity.uuid), now() + 30 * 60 * 1000) };
+          serverId: hello.serverId, policyHash: hello.policyHash, groupHash: hello.groupHash, connectionId, joinedAt: now(), lastPose: 0 };
         room.set(peer.uuid, peer); sessions.add(peer); state = 'online'; clearTimeout(timeout);
         audit('peer_joined', { connectionId, uuid: peer.uuid, name: peer.name, remoteAddress: address,
           room: sha256(roomId).slice(0, 16), identityVerified: true, accessAuthorized: true, activePeers: sessions.size });
@@ -159,7 +158,9 @@ export function createRelay({ policy: initialPolicy, verifyIdentity, log, secure
   const interval = setInterval(() => {
     for (const peer of sessions) {
       const grant = permitted(policy, peer, now());
-      if (!grant || now() >= peer.expiresAt || peer.policyHash !== policy.policyHash || !peer.room.startsWith(grant.id + ':')) {
+      // Recheck current authorization, but do not expire an authenticated live connection.
+      // Explicit member expiry in legacy policies is still enforced by permitted().
+      if (!grant || peer.policyHash !== policy.policyHash || !peer.room.startsWith(grant.id + ':')) {
         leave(peer); peer.ws.terminate(); continue;
       }
       if (peer.pose && now() - peer.lastPose > 5000) clearPose(peer);

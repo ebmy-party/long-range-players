@@ -1,4 +1,5 @@
 FROM node:24-alpine
+LABEL org.opencontainers.image.source=https://github.com/ebmy-party/long-range-players
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
